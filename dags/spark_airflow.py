@@ -24,9 +24,16 @@ pyspark_job = SparkSubmitOperator(
     dag = dag
 )
 
+scala_job = SparkSubmitOperator(
+    task_id = "scala_job",
+    conn_id = "spark-conn",
+    application="jobs/scala/target/scala-2.12/word-count_2.12-0.1.jar",
+    dag = dag
+)
+
 end = PythonOperator(
     task_id = "end",
     python_callable = lambda: print("Job done")
 )
 
-start >> pyspark_job >> end
+start >> [pyspark_job, scala_job] >> end
