@@ -68,16 +68,17 @@ process = SparkSubmitOperator(
     task_id = "spark_process",
     conn_id = "spark-conn",
     application = "jobs/python/tiki_spark_job.py",
-    conf = {
-        'io_url': 'jdbc:postgresql://host.docker.internal:5432/test',
-        'input_table': 'product_data',
-        'output_table': 'product_agg',
-        'username': 'postgres',
-        'password': 'joshuamellody',
-        'filter_column': 'category_id',
-        'filter_value': 1795,  # smartphone
-        'agg_function': ['count', 'sum', 'distinct']
-    },
+    # TODO: Fix conf
+    # conf = {
+    #     'io_url': 'jdbc:postgresql://host.docker.internal:5432/test',
+    #     'input_table': 'product_data',
+    #     'output_table': 'product_agg',
+    #     'username': 'postgres',
+    #     'password': 'joshuamellody',
+    #     'filter_column': 'category_id',
+    #     'filter_value': 1795,  # smartphone
+    #     'agg_function': ['count', 'sum', 'distinct']
+    # },
     dag = dag
 )
 
