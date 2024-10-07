@@ -165,3 +165,26 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# Scala
+target/
+__pycache__
+out
+node_modules
+vscode-sbt-scala/client/server
+npm-debug.log
+*.vsix
+!sbt/src/server-test/completions/target
+.big
+.idea
+.bloop
+.metals
+.bsp/
+metals.sbt
+launcher-package/citest/freshly-baked
+.vscode
+sbt-launch.jar
+*.class
+*.log
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
