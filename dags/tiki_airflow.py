@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.utils.dates import days_ago
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from tiki_crawler import get_product_id, get_product_data
 import psycopg2
@@ -63,22 +64,33 @@ collect_data = PythonOperator(
     dag = dag
 )
 
+# download postgresql jdbc for spark job
+download_jar = BashOperator(
+    task_id='download_postgresql_jar',
+    bash_command='curl -o /usr/local/spark/jars/postgresql-42.2.5.jar https://jdbc.postgresql.org/download/postgresql-42.2.5.jar && chmod 777 /usr/local/spark/jars/postgresql-42.2.5.jar',
+    dag = dag
+)
+
+# Application Arguments
+postgres_url = "jdbc:postgresql://host.docker.internal:5432/test"
+postgres_table_input = "product_data"
+postgres_username = "postgres"
+postgres_pwd = "joshuamellody"
+filter_col = "category_id"
+filter_value = str(1795)
+aggregations = "count(id), sum(reviews_count)"
+addition_col = "category_name"
+postgres_table_output = "product_agg"
+
 # get data from Postgresql to run Pyspark job
 process = SparkSubmitOperator(
     task_id = "spark_process",
     conn_id = "spark-conn",
     application = "jobs/python/tiki_spark_job.py",
-    # TODO: Fix conf
-    # conf = {
-    #     'io_url': 'jdbc:postgresql://host.docker.internal:5432/test',
-    #     'input_table': 'product_data',
-    #     'output_table': 'product_agg',
-    #     'username': 'postgres',
-    #     'password': 'joshuamellody',
-    #     'filter_column': 'category_id',
-    #     'filter_value': 1795,  # smartphone
-    #     'agg_function': ['count', 'sum', 'distinct']
-    # },
+    jars = "/usr/local/spark/jars/postgresql-42.2.5.jar",
+    driver_class_path = '/usr/local/spark/jars/postgresql-42.2.5.jar',
+    verbose = True,
+    application_args = [postgres_url, postgres_table_input, postgres_username, postgres_pwd, filter_col, filter_value, aggregations, addition_col, postgres_table_output],
     dag = dag
 )
 
@@ -89,4 +101,4 @@ end = PythonOperator(
     dag = dag
 )
 
-start >> collect_id >> collect_data >> process >> end
+start >> collect_id >> collect_data >> download_jar >> process >> end

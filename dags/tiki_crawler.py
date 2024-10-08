@@ -1,8 +1,6 @@
 import pandas as pd
 import requests
 from sqlalchemy import create_engine
-import psycopg2 
-import io
 
 id_headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/129.0.0.0 Safari/537.36 Edg/129.0.0.0',
@@ -80,22 +78,22 @@ def get_product_data():
     df_id = pd.read_csv('productId.csv')
     p_ids = df_id.id.tolist()
     result = []
-    count = 0
+    # count = 0
     for pid in p_ids:
         response = requests.get('https://tiki.vn/api/v2/products/{}'.format(pid), headers=data_headers, params=data_params)
         if response.status_code == 200:
             print('Crawl data {} success'.format(pid))
             try:
                 result.append(parser_product(response.json()))
-                count += 1
+                # count += 1
             except Exception as e:
                 print(e)
                 continue
-        if count == 10:
-            break
+        # if count == 50:
+        #     break
 
     df_product = pd.DataFrame(result)
 
     # save to postgresql
     engine = create_engine('postgresql://postgres:joshuamellody@host.docker.internal:5432/test')
-    df_product.to_sql('product_data', engine, index=False)
+    df_product.to_sql('product_data', engine, index=False, if_exists="replace")

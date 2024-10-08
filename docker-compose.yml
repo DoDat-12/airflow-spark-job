@@ -4,6 +4,7 @@ x-spark-common: &spark-common
   image: bitnami/spark:latest
   volumes:
     - ./jobs:/opt/bitnami/spark/jobs
+    - ./jars:/usr/local/spark/jars
   networks:
     - dodat
 
@@ -17,6 +18,7 @@ x-airflow-common: &airflow-common
     - ./jobs:/opt/airflow/jobs
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
+    - ./jars:/usr/local/spark/jars
   depends_on:
     - postgres
   networks:
