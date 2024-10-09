@@ -64,36 +64,147 @@ collect_data = PythonOperator(
     dag = dag
 )
 
-# download postgresql jdbc for spark job
-download_jar = BashOperator(
+# download postgresql jdbc
+download_pos_jar = BashOperator(
     task_id='download_postgresql_jar',
-    bash_command='curl -o /usr/local/spark/jars/postgresql-42.2.5.jar https://jdbc.postgresql.org/download/postgresql-42.2.5.jar && chmod 777 /usr/local/spark/jars/postgresql-42.2.5.jar',
+    bash_command = """
+        curl -o /usr/local/spark/jars/postgresql-42.2.5.jar https://jdbc.postgresql.org/download/postgresql-42.2.5.jar
+        chmod 777 /usr/local/spark/jars/postgresql-42.2.5.jar
+    """,
     dag = dag
 )
 
-# Application Arguments
-postgres_url = "jdbc:postgresql://host.docker.internal:5432/test"
-postgres_table_input = "product_data"
+# download sqlite jdbc
+download_sqlite_jar = BashOperator(
+    task_id="download_sqlite_jar",
+    bash_command = """
+        curl -o /usr/local/spark/jars/sqlite-jdbc-3.46.1.3.jar https://github.com/xerial/sqlite-jdbc/releases/download/3.46.1.3/sqlite-jdbc-3.46.1.3.jar
+        chmod 777 /usr/local/spark/jars/sqlite-jdbc-3.46.1.3.jar
+    """,
+    dag = dag
+)
+
+# download mysql jdbc
+download_mysql_jar = BashOperator(
+    task_id="download_mysql_jar",
+    bash_command="""
+        curl -L -o /usr/local/spark/jars/mysql-connector-j-9.0.0.tar.gz https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-9.0.0.tar.gz
+        tar -xzf /usr/local/spark/jars/mysql-connector-j-9.0.0.tar.gz -C /usr/local/spark/jars/
+        chmod -R 777 /usr/local/spark/jars/mysql-connector-j-9.0.0
+    """,
+    dag = dag
+)
+
+# Application Config
+# username & password
 postgres_username = "postgres"
 postgres_pwd = "joshuamellody"
+mysql_username = "root"
+mysql_pwd = "joshuamellody"
+# source
+input_rdbms = "postgresql"  # available for postgresql, mysql, sqlite
+input_port = str(5432)
+input_database = "test"
+input_table = "product_data"
+
+output_rdbms = "postgresql"
+output_port = str(5432)
+output_database = "test"
+output_table = "product_agg"
+# filter & aggregation
+# TODO: Fix this
 filter_col = "category_id"
-filter_value = str(1795)
-aggregations = "count(id), sum(reviews_count)"
-addition_col = "category_name"
-postgres_table_output = "product_agg"
+filter_con = "= 1795"
+filter_conditions = "category_id = 1795"
+aggregations = "count(id) AS number_of_products, sum(reviews_count) AS number_of_reviews"
+group_cols = "category_id, category_name"
+
+# url = "jdbc:postgresql://host.docker.internal:5432/test"
 
 # get data from Postgresql to run Pyspark job
-process = SparkSubmitOperator(
-    task_id = "spark_process",
+process_postgres = SparkSubmitOperator(
+    task_id = "spark_to_postgres",
     conn_id = "spark-conn",
     application = "jobs/python/tiki_spark_job.py",
     jars = "/usr/local/spark/jars/postgresql-42.2.5.jar",
     driver_class_path = '/usr/local/spark/jars/postgresql-42.2.5.jar',
     verbose = True,
-    application_args = [postgres_url, postgres_table_input, postgres_username, postgres_pwd, filter_col, filter_value, aggregations, addition_col, postgres_table_output],
+    application_args = [
+        postgres_username,  # 1
+        postgres_pwd,       # 2
+        input_rdbms,        # 3
+        input_port,         # 4
+        input_database,     # 5
+        input_table,        # 6
+        postgres_username,  # 7
+        postgres_pwd,       # 8
+        output_rdbms,       # 9
+        output_port,        # 10
+        output_database,    # 11
+        output_table,       # 12
+        filter_col,         # 13
+        filter_con,         # 14
+        aggregations,       # 15
+    ],
     dag = dag
 )
 
+process_mysql = SparkSubmitOperator(
+    task_id = "spark_to_mysql",
+    conn_id = "spark-conn",
+    application = "jobs/python/tiki_spark_job.py",
+    jars = "/usr/local/spark/jars/postgresql-42.2.5.jar,/usr/local/spark/jars/mysql-connector-j-9.0.0/mysql-connector-j-9.0.0.jar",
+    # driver_class_path = "/usr/local/spark/jars/mysql-connector-j-8.0.33.jar",
+    verbose = True,
+    application_args = [
+        postgres_username,
+        postgres_pwd,
+        input_rdbms,
+        input_port,
+        input_database,
+        input_table,
+        mysql_username,
+        mysql_pwd,
+        "mysql",  # output_rdbms
+        str(3306),  # output_port
+        "test",  # output_database
+        "product_data",  # output_table
+        filter_col,
+        filter_con,
+        aggregations,
+    ],
+    dag = dag
+)
+
+process_sqlite = SparkSubmitOperator(
+    task_id = "spark_to_sqlite",
+    conn_id = "spark-conn",
+    application = "jobs/python/tiki_spark_job.py",
+    jars = "/usr/local/spark/jars/postgresql-42.2.5.jar,/usr/local/spark/jars/sqlite-jdbc-3.46.1.3.jar",
+    verbose = True,
+    application_args = [
+        postgres_username,
+        postgres_pwd,
+        input_rdbms,
+        input_port,
+        input_database,
+        input_table,
+        "",
+        "",
+        "sqlite",
+        "",
+        "",
+        "product_data",
+        filter_col,
+        filter_con,
+        aggregations,
+    ]
+)
+
+join = BashOperator(
+    task_id = 'join',
+    bash_command='mkdir -p /usr/local/spark/output/sqlite && chmod 777 -R /usr/local/spark/output/sqlite'
+)
 
 end = PythonOperator(
     task_id = "end",
@@ -101,4 +212,4 @@ end = PythonOperator(
     dag = dag
 )
 
-start >> collect_id >> collect_data >> download_jar >> process >> end
+start >> collect_id >> collect_data >> [download_pos_jar, download_mysql_jar, download_sqlite_jar] >> join >> [process_postgres, process_mysql, process_sqlite] >> end
