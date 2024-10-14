@@ -25,4 +25,8 @@ Set up Spark connection to Airflow
 
 ![airflow_tiki.png](./doc/airflow_tiki.png)
 
+## Spark Job Optimization
+
+https://towardsdatascience.com/6-recommendations-for-optimizing-a-spark-job-5899ec269b4b
+
 > `.\env\Scripts\activate`
