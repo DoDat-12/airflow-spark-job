@@ -112,9 +112,10 @@ output_port = str(5432)
 output_database = "test"
 output_table = "product_agg"
 # filter & aggregation
-filter_conditions = "category_id = 1795 AND discount_rate > 10"
+filter_conditions = "discount_rate > 10"
 aggregations = "count(id) AS number_of_products, sum(reviews_count) AS number_of_reviews"
 group_cols = "category_id, category_name"
+having_condition = "count(id) > 5"
 
 # url = "jdbc:postgresql://host.docker.internal:5432/test"
 
@@ -142,6 +143,7 @@ process_postgres = SparkSubmitOperator(
         filter_conditions,  # 13
         aggregations,       # 14
         group_cols,         # 15
+        having_condition,   # 16
     ],
     dag = dag
 )
@@ -169,6 +171,7 @@ process_mysql = SparkSubmitOperator(
         filter_conditions,
         aggregations,
         group_cols,
+        having_condition,
     ],
     dag = dag
 )
@@ -195,6 +198,7 @@ process_sqlite = SparkSubmitOperator(
         filter_conditions,
         aggregations,
         group_cols,
+        having_condition,
     ]
 )
 

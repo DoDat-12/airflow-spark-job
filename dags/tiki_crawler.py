@@ -78,19 +78,19 @@ def get_product_data():
     df_id = pd.read_csv('productId.csv')
     p_ids = df_id.id.tolist()
     result = []
-    count = 0
+    # count = 0
     for pid in p_ids:
         response = requests.get('https://tiki.vn/api/v2/products/{}'.format(pid), headers=data_headers, params=data_params)
         if response.status_code == 200:
             print('Crawl data {} success'.format(pid))
             try:
                 result.append(parser_product(response.json()))
-                count += 1
+                # count += 1
             except Exception as e:
                 print(e)
                 continue
-        if count == 20:
-            break
+        # if count == 20:
+        #     break
 
     df_product = pd.DataFrame(result)
 

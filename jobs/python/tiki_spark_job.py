@@ -27,6 +27,7 @@ output_table = sys.argv[12]
 filter_conditions = sys.argv[13]
 aggregations = sys.argv[14]
 group_cols = sys.argv[15]
+having_conditions = sys.argv[16]
 
 if input_rdbms == "postgresql":
     input_driver = "org.postgresql.Driver"
@@ -54,7 +55,9 @@ res_df = spark.sql(
     WHERE
         {filter_conditions}
     GROUP BY
-        {group_cols};        
+        {group_cols}
+    HAVING
+        {having_conditions}       
     """
 )
 
