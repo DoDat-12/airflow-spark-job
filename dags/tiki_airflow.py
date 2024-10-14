@@ -95,6 +95,16 @@ download_mysql_jar = BashOperator(
     dag = dag
 )
 
+dwh_storing = SparkSubmitOperator(
+    task_id = "dwh_stuff",
+    conn_id = "spark-conn",
+    application = "jobs/python/tiki_fake_dwh.py",
+    jars = "/usr/local/spark/jars/postgresql-42.2.5.jar",
+    driver_class_path = "/usr/local/spark/jars/postgresql-42.2.5.jar",
+    verbose = True,
+    dag = dag
+)
+
 # Application Config
 # username & password
 postgres_username = "postgres"
@@ -105,7 +115,9 @@ mysql_pwd = "joshuamellody"
 input_rdbms = "postgresql"  # available for postgresql, mysql, sqlite
 input_port = str(5432)
 input_database = "test"
-input_table = "product_data"
+input_tables = "brand product"
+join_type = "inner"
+join_expression = "brand_id"
 
 output_rdbms = "postgresql"
 output_port = str(5432)
@@ -114,7 +126,7 @@ output_table = "product_agg"
 # filter & aggregation
 filter_conditions = "discount_rate > 10"
 aggregations = "count(id) AS number_of_products, sum(reviews_count) AS number_of_reviews"
-group_cols = "category_id, category_name"
+group_cols = "brand_id, brand_name"
 having_condition = "count(id) > 5"
 
 # url = "jdbc:postgresql://host.docker.internal:5432/test"
@@ -133,17 +145,19 @@ process_postgres = SparkSubmitOperator(
         input_rdbms,        # 3
         input_port,         # 4
         input_database,     # 5
-        input_table,        # 6
-        postgres_username,  # 7
-        postgres_pwd,       # 8
-        output_rdbms,       # 9
-        output_port,        # 10
-        output_database,    # 11
-        output_table,       # 12
-        filter_conditions,  # 13
-        aggregations,       # 14
-        group_cols,         # 15
-        having_condition,   # 16
+        input_tables,       # 6
+        join_type,          # 7
+        join_expression,    # 8
+        postgres_username,  # 9
+        postgres_pwd,       # 10
+        output_rdbms,       # 11
+        output_port,        # 12
+        output_database,    # 13
+        output_table,       # 14
+        filter_conditions,  # 15
+        aggregations,       # 16
+        group_cols,         # 17
+        having_condition,   # 18
     ],
     dag = dag
 )
@@ -161,13 +175,15 @@ process_mysql = SparkSubmitOperator(
         input_rdbms,
         input_port,
         input_database,
-        input_table,
+        input_tables,
+        join_type,
+        join_expression,
         mysql_username,
         mysql_pwd,
         "mysql",  # output_rdbms
         str(3306),  # output_port
         "test",  # output_database
-        "product_data",  # output_table
+        "product_agg",  # output_table
         filter_conditions,
         aggregations,
         group_cols,
@@ -188,13 +204,15 @@ process_sqlite = SparkSubmitOperator(
         input_rdbms,
         input_port,
         input_database,
-        input_table,
+        input_tables,
+        join_type,
+        join_expression,
         "",
         "",
         "sqlite",
         "",
         "",
-        "product_data",
+        "product_agg",
         filter_conditions,
         aggregations,
         group_cols,
@@ -213,4 +231,4 @@ end = PythonOperator(
     dag = dag
 )
 
-start >> collect_id >> collect_data >> [download_pos_jar, download_mysql_jar, download_sqlite_jar] >> join >> [process_postgres, process_mysql, process_sqlite] >> end
+start >> collect_id >> collect_data >> [download_pos_jar, download_mysql_jar, download_sqlite_jar] >> join >> dwh_storing >> [process_postgres, process_mysql, process_sqlite] >> end
