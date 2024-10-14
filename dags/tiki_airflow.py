@@ -112,10 +112,7 @@ output_port = str(5432)
 output_database = "test"
 output_table = "product_agg"
 # filter & aggregation
-# TODO: Fix this
-filter_col = "category_id"
-filter_con = "= 1795"
-filter_conditions = "category_id = 1795"
+filter_conditions = "category_id = 1795 AND discount_rate > 10"
 aggregations = "count(id) AS number_of_products, sum(reviews_count) AS number_of_reviews"
 group_cols = "category_id, category_name"
 
@@ -142,9 +139,9 @@ process_postgres = SparkSubmitOperator(
         output_port,        # 10
         output_database,    # 11
         output_table,       # 12
-        filter_col,         # 13
-        filter_con,         # 14
-        aggregations,       # 15
+        filter_conditions,  # 13
+        aggregations,       # 14
+        group_cols,         # 15
     ],
     dag = dag
 )
@@ -169,9 +166,9 @@ process_mysql = SparkSubmitOperator(
         str(3306),  # output_port
         "test",  # output_database
         "product_data",  # output_table
-        filter_col,
-        filter_con,
+        filter_conditions,
         aggregations,
+        group_cols,
     ],
     dag = dag
 )
@@ -195,9 +192,9 @@ process_sqlite = SparkSubmitOperator(
         "",
         "",
         "product_data",
-        filter_col,
-        filter_con,
+        filter_conditions,
         aggregations,
+        group_cols,
     ]
 )
 

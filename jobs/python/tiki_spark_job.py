@@ -10,7 +10,7 @@ spark = SparkSession \
 
 input_username = sys.argv[1]
 input_pwd = sys.argv[2]
-# source
+
 input_rdbms = sys.argv[3]
 input_port = sys.argv[4]
 input_database = sys.argv[5]
@@ -18,14 +18,15 @@ input_table = sys.argv[6]
 
 output_username = sys.argv[7]
 output_pwd = sys.argv[8]
+
 output_rdbms = sys.argv[9]
 output_port = sys.argv[10]
 output_database = sys.argv[11]
 output_table = sys.argv[12]
-# filter & aggregation
-filter_col = sys.argv[13]
-filter_con = sys.argv[14]
-aggregations = sys.argv[15]
+
+filter_conditions = sys.argv[13]
+aggregations = sys.argv[14]
+group_cols = sys.argv[15]
 
 if input_rdbms == "postgresql":
     input_driver = "org.postgresql.Driver"
@@ -48,12 +49,12 @@ df.createOrReplaceTempView("product_data")
 res_df = spark.sql(
     f"""
     SELECT 
-        {filter_col}, {aggregations}
+        {group_cols}, {aggregations}
     FROM {input_table}
     WHERE
-        {filter_col} {filter_con}
+        {filter_conditions}
     GROUP BY
-        {filter_col};        
+        {group_cols};        
     """
 )
 
