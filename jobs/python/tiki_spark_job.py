@@ -9,6 +9,8 @@ spark = SparkSession \
         .appName("Tiki Data Processing") \
         .getOrCreate()
 
+spark.conf.set("spark.sql.shuffle.partitions", 4)
+
 input_username = sys.argv[1]
 input_pwd = sys.argv[2]
 
@@ -79,7 +81,7 @@ if filter2 != "":
     df2 = df2.filter(filter2)
 
 df = df1.join(df2, on=join_expression, how=join_type)
-# df.cache()
+df.cache()
 # df.show()
 df.createOrReplaceTempView("df")
 # spark.table("df").cache()
@@ -152,5 +154,5 @@ else:
 
 print(f"Total time taken: {time.time() - start_time} seconds")
 # spark.table("df").unpersist()
-# df.unpersist()
+df.unpersist()
 spark.stop()
