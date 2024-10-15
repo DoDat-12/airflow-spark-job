@@ -7,23 +7,23 @@ from tiki_crawler import get_product_id, get_product_data
 import psycopg2
 
 
-def execute_query_with_psycopg(my_query, **kwargs):
-    """
-    Test Postgresql connection
-    """
-    print(my_query)  # 'value_1'
-    conn_args = dict(
-        host='host.docker.internal',
-        user='postgres',
-        password='joshuamellody',
-        dbname='test',
-        port=5432)
-    conn = psycopg2.connect(**conn_args)
-    cur = conn.cursor()
-    cur.execute(my_query)
+# def execute_query_with_psycopg(my_query, **kwargs):
+#     """
+#     Test Postgresql connection
+#     """
+#     print(my_query)  # 'value_1'
+#     conn_args = dict(
+#         host='host.docker.internal',
+#         user='postgres',
+#         password='joshuamellody',
+#         dbname='test',
+#         port=5432)
+#     conn = psycopg2.connect(**conn_args)
+#     cur = conn.cursor()
+#     cur.execute(my_query)
 
-    for row in cur:
-        print(row)
+#     for row in cur:
+#         print(row)
 
 
 dag = DAG(
@@ -115,19 +115,27 @@ mysql_pwd = "joshuamellody"
 input_rdbms = "postgresql"  # available for postgresql, mysql, sqlite
 input_port = str(5432)
 input_database = "test"
-input_tables = "brand product"
+
+input_table1 = "brand"
+filter1 = ""
+input_table2 = "product"
+filter2 = "discount_rate > 10"
 join_type = "inner"
 join_expression = "brand_id"
 
 output_rdbms = "postgresql"
 output_port = str(5432)
 output_database = "test"
-output_table = "product_agg"
-# filter & aggregation
-filter_conditions = "discount_rate > 10"
-aggregations = "count(id) AS number_of_products, sum(reviews_count) AS number_of_reviews"
-group_cols = "brand_id, brand_name"
-having_condition = "count(id) > 5"
+
+output_table1 = "product_count_brand"
+aggregation1 = "count(id) AS number_of_products"
+group_col1 = "brand_id, brand_name"
+having_condition1 = "count(id) > 5"
+
+output_table2 = "product_sum_brand"
+aggregation2 = "sum(reviews_count) AS number_of_reviews"
+group_col2 = "brand_id, brand_name"
+having_condition2 = "sum(reviews_count) <> 0"
 
 # url = "jdbc:postgresql://host.docker.internal:5432/test"
 
@@ -145,19 +153,25 @@ process_postgres = SparkSubmitOperator(
         input_rdbms,        # 3
         input_port,         # 4
         input_database,     # 5
-        input_tables,       # 6
-        join_type,          # 7
-        join_expression,    # 8
-        postgres_username,  # 9
-        postgres_pwd,       # 10
-        output_rdbms,       # 11
-        output_port,        # 12
-        output_database,    # 13
-        output_table,       # 14
-        filter_conditions,  # 15
-        aggregations,       # 16
-        group_cols,         # 17
-        having_condition,   # 18
+        input_table1,       # 6
+        filter1,            # 7 (optional)
+        input_table2,       # 8 (optional)
+        filter2,            # 9 (optional)
+        join_type,          # 10 (optional)
+        join_expression,    # 11 (optional)
+        postgres_username,  # 12
+        postgres_pwd,       # 13
+        output_rdbms,       # 14
+        output_port,        # 15
+        output_database,    # 16
+        output_table1,      # 17
+        aggregation1,       # 18
+        group_col1,         # 19
+        having_condition1,  # 20
+        output_table2,      # 21
+        aggregation2,       # 22
+        group_col2,         # 23
+        having_condition2,  # 24
     ],
     dag = dag
 )
@@ -175,7 +189,10 @@ process_mysql = SparkSubmitOperator(
         input_rdbms,
         input_port,
         input_database,
-        input_tables,
+        input_table1,
+        filter1, 
+        input_table2,
+        filter2,
         join_type,
         join_expression,
         mysql_username,
@@ -183,11 +200,14 @@ process_mysql = SparkSubmitOperator(
         "mysql",  # output_rdbms
         str(3306),  # output_port
         "test",  # output_database
-        "product_agg",  # output_table
-        filter_conditions,
-        aggregations,
-        group_cols,
-        having_condition,
+        output_table1,    
+        aggregation1,     
+        group_col1,       
+        having_condition1,
+        output_table2,    
+        aggregation2,     
+        group_col2,       
+        having_condition2,
     ],
     dag = dag
 )
@@ -204,20 +224,27 @@ process_sqlite = SparkSubmitOperator(
         input_rdbms,
         input_port,
         input_database,
-        input_tables,
+        input_table1,
+        filter1,
+        input_table2,
+        filter2,
         join_type,
         join_expression,
-        "",
-        "",
+        "",                 # no need username
+        "",                 # no need password
         "sqlite",
-        "",
-        "",
-        "product_agg",
-        filter_conditions,
-        aggregations,
-        group_cols,
-        having_condition,
-    ]
+        "",                 # no need port
+        "",                 # no need database
+        output_table1,      # 17
+        aggregation1,       # 18
+        group_col1,         # 19
+        having_condition1,  # 20
+        output_table2,      # 21
+        aggregation2,       # 22
+        group_col2,         # 23
+        having_condition2,  # 24
+    ],
+    dag = dag
 )
 
 join = BashOperator(
@@ -232,3 +259,4 @@ end = PythonOperator(
 )
 
 start >> collect_id >> collect_data >> [download_pos_jar, download_mysql_jar, download_sqlite_jar] >> join >> dwh_storing >> [process_postgres, process_mysql, process_sqlite] >> end
+# start >> process_postgres >> end
