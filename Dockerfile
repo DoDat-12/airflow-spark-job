@@ -13,4 +13,10 @@ ENV JAVA_HOME /usr/lib/jvm/java-17-openjdk-amd64
 USER airflow
 
 # Install dependencies
-RUN pip install apache-airflow apache-airflow-providers-apache-spark pyspark pandas requests apache-airflow-providers-postgres
+RUN pip install apache-airflow 
+RUN pip install apache-airflow-providers-apache-spark 
+RUN pip install pyspark 
+RUN pip install pandas 
+RUN pip install requests 
+RUN pip install apache-airflow-providers-postgres 
+RUN pip install pyarrow
