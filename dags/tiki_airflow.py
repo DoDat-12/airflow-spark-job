@@ -95,6 +95,20 @@ download_mysql_jar = BashOperator(
     dag = dag
 )
 
+# download all jars driver
+download_jars = BashOperator(
+    task_id="download_jars",
+    bash_command="""
+        curl -o /usr/local/spark/jars/postgresql-42.2.5.jar https://jdbc.postgresql.org/download/postgresql-42.2.5.jar
+        chmod 777 /usr/local/spark/jars/postgresql-42.2.5.jar
+        curl -o /usr/local/spark/jars/sqlite-jdbc-3.46.1.3.jar https://github.com/xerial/sqlite-jdbc/releases/download/3.46.1.3/sqlite-jdbc-3.46.1.3.jar
+        chmod 777 /usr/local/spark/jars/sqlite-jdbc-3.46.1.3.jar
+        curl -L -o /usr/local/spark/jars/mysql-connector-j-9.0.0.tar.gz https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-9.0.0.tar.gz
+        tar -xzf /usr/local/spark/jars/mysql-connector-j-9.0.0.tar.gz -C /usr/local/spark/jars/
+        chmod -R 777 /usr/local/spark/jars/mysql-connector-j-9.0.0
+    """
+)
+
 dwh_storing = SparkSubmitOperator(
     task_id = "dwh_stuff",
     conn_id = "spark-conn",

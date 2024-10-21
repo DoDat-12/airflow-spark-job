@@ -5,9 +5,9 @@ from pyspark.sql import SparkSession
 
 # TODO: Fix jar file for postgres
 spark = SparkSession \
-        .builder \
-        .appName("Tiki Data Processing") \
-        .getOrCreate()
+    .builder \
+    .appName("Tiki Data Processing") \
+    .getOrCreate()
 
 spark.conf.set("spark.sql.shuffle.partitions", 4)
 
@@ -88,25 +88,25 @@ df.createOrReplaceTempView("df")
 
 res_df1 = spark.sql(
     f"""
-    SELECT 
+    SELECT
         {group_col1}, {aggregation1}
     FROM df
     GROUP BY
         {group_col1}
     HAVING
-        {having_condition1}       
+        {having_condition1}
     """
 )
 
 res_df2 = spark.sql(
     f"""
-    SELECT 
+    SELECT
         {group_col2}, {aggregation2}
     FROM df
     GROUP BY
         {group_col2}
     HAVING
-        {having_condition2}       
+        {having_condition2}
     """
 )
 
