@@ -23,7 +23,7 @@ Set up Spark connection to Airflow
 
 ## TikiJob
 
-![airflow_tiki_v2.png](./doc/airflow_tiki_v2.png)
+![airflow_tiki_v3.png](./doc/airflow_tiki_v3.png)
 
 ## Spark Job Optimization
 

@@ -7,7 +7,7 @@ from tiki_crawler import get_data
 
 
 dag = DAG(
-    dag_id="TikiJobV2",
+    dag_id="TikiJobV3",
     default_args={
         "owner": "dodat",
         "start_date": days_ago(1),
@@ -38,7 +38,7 @@ collect_data = PythonOperator(
 )
 
 # raw to warehouse
-"""Tables list
+"""Tables list:
     - product
     - brand
     - category
@@ -53,90 +53,36 @@ dwh_storing = SparkSubmitOperator(
     dag=dag,
 )
 
-"""Join Job Arguments List:
-    - input_username
-    - input_password
-    - input_rdbms
-    - input_port
-    - input_database
-    - input_table1
-    - input_filter1
-    - input_table2
-    - input_filter2
-    - join_col
-    - join_type
-    - output_table
-"""
-
-# join product and brand table
-join_product_brand = SparkSubmitOperator(
-    task_id="join_product_brand",
+# joining
+multiple_join = SparkSubmitOperator(
+    task_id="multiple_join",
     conn_id="spark-conn",
-    application="jobs/python/tiki_spark_join.py",
+    application="jobs/python/tiki_multiple_join.py",
     jars="/usr/local/spark/jars/postgresql-42.2.5.jar",
     driver_class_path='/usr/local/spark/jars/postgresql-42.2.5.jar',
     verbose=True,
     application_args=[
-        "postgres",             # input_username
-        "joshuamellody",        # input_password
-        "postgresql",           # input_rdbms
-        str(5432),              # input_port
-        "test",                 # input_database
-        "product",              # input_table1
-        "discount_rate > 10",   # input_filter1
-        "brand",                # input_table2
-        "",                     # input_filter2
-        "brand_id",             # join_col
-        "inner",                # join_type
-        "product_brand_tmp",    # output_table
+        "postgres",                         # input_username
+        "joshuamellody",                    # input_password
+        "postgresql",                       # input_rdbms
+        str(5432),                          # input_port
+        "test",                             # input_database
+        str(3),                                     # table_numbers
+        "product",                          # input_table0
+        "discount_rate > 10",               # input_filter0
+        "brand",                            # input_table1
+        "",                                 # input_filter1
+        "category",                         # input_table2
+        "category_id NOT IN (2, 28856)",    # input_filter2
+        str(2),                                     # join number
+        "0 1 brand_id inner",               # join0
+        "3 2 category_id inner",            # join1
+        "product_brand_category",                   # output
     ],
     dag=dag,
 )
 
-# join product and category table
-join_product_category = SparkSubmitOperator(
-    task_id="join_product_category",
-    conn_id="spark-conn",
-    application="jobs/python/tiki_spark_join.py",
-    jars="/usr/local/spark/jars/postgresql-42.2.5.jar",
-    driver_class_path='/usr/local/spark/jars/postgresql-42.2.5.jar',
-    verbose=True,
-    application_args=[
-        "postgres",                 # input_username
-        "joshuamellody",            # input_password
-        "postgresql",               # input_rdbms
-        str(5432),                  # input_port
-        "test",                     # input_database
-        "product",                  # input_table1
-        "discount_rate > 10",       # input_filter1
-        "category",                 # input_table2
-        "",                         # input_filter2
-        "category_id",              # join_col
-        "inner",                    # join_type
-        "product_category_tmp",     # output_table
-    ],
-    dag=dag,
-)
-
-"""Aggregation Job Arguments List:
-    - input_username
-    - input_password
-    - input_rdbms
-    - input_port
-    - input_database
-    - input_table
-    - filter
-    - aggregations
-    - group_cols
-    - having_condition
-    - output_username
-    - output_password
-    - output_rdbms
-    - output_port
-    - output_database
-    - output_table
-"""
-
+# aggregation
 # aggregate average rating for each brand
 agg_brand_average_rate = SparkSubmitOperator(
     task_id="agg_brand_average_rate",
@@ -151,11 +97,11 @@ agg_brand_average_rate = SparkSubmitOperator(
         "postgresql",                                           # input_rdbms
         str(5432),                                              # input_port
         "test",                                                 # input_database
-        "product_brand_tmp",                                    # input_table
+        "product_brand_category",                               # input_table
         "rating_average > 0",                                   # filter
         "round(avg(rating_average), 2) as average_rating",      # aggregations
         "brand_id, category_id, brand_name",                    # group_cols
-        "a",                                                    # having_condition
+        "",                                                     # having_condition
         "postgres",                                             # output_username
         "joshuamellody",                                        # output_password
         "postgresql",                                           # output_rdbms
@@ -166,7 +112,6 @@ agg_brand_average_rate = SparkSubmitOperator(
     dag=dag,
 )
 
-# aggregate number of products each brand
 agg_products_each_category = SparkSubmitOperator(
     task_id="agg_products_each_category",
     conn_id="spark-conn",
@@ -180,7 +125,7 @@ agg_products_each_category = SparkSubmitOperator(
         "postgresql",                                           # input_rdbms
         str(5432),                                              # input_port
         "test",                                                 # input_database
-        "product_category_tmp",                                 # input_table
+        "product_brand_category",                               # input_table
         "",                                                     # filter
         "count(id) as number_of_products",                      # aggregations
         "category_id, category_name",                           # group_cols
@@ -195,37 +140,6 @@ agg_products_each_category = SparkSubmitOperator(
     dag=dag,
 )
 
-join_category_brand_average = SparkSubmitOperator(
-    task_id="join_category_brand_average",
-    conn_id="spark-conn",
-    application="jobs/python/tiki_spark_join.py",
-    jars="/usr/local/spark/jars/postgresql-42.2.5.jar",
-    driver_class_path='/usr/local/spark/jars/postgresql-42.2.5.jar',
-    verbose=True,
-    application_args=[
-        "postgres",                 # input_username
-        "joshuamellody",            # input_password
-        "postgresql",               # input_rdbms
-        str(5432),                  # input_port
-        "test",                     # input_database
-        "agg_brand_average_rate",   # input_table1
-        "average_rating > 4.5",     # input_filter1
-        "category",                 # input_table2
-        "",                         # input_filter2
-        "category_id",              # join_col
-        "inner",                    # join_type
-        "category_brand_average",   # output_table
-    ],
-    dag=dag,
-)
-
-setup >> collect_data >> dwh_storing >> [
-    join_product_brand,
-    join_product_category
-]
-
-join_product_brand.set_downstream(agg_brand_average_rate)
-agg_products_each_category.set_upstream(join_product_category)
-join_category_brand_average.set_upstream(
-    [dwh_storing, agg_brand_average_rate]
-)
+setup >> collect_data >> dwh_storing >> multiple_join
+multiple_join.set_downstream(agg_products_each_category)
+multiple_join.set_downstream(agg_brand_average_rate)
